@@ -1,0 +1,55 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: macos-15
+    timeout-minutes: 45
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+          cache: gradle
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Test common code
+        run: |
+          ./gradlew \
+            :kmp:jvmTest \
+            :kmp:jsNodeTest \
+            :kmp:iosSimulatorArm64Test \
+            --no-daemon
+
+      - name: Build artifacts
+        run: |
+          ./gradlew \
+            :kmp:publishToMavenLocal \
+            :kmp:packJsPackage \
+            :kmp:assembleNotiflyKMPReleaseXCFramework \
+            --no-daemon
+
+      - name: Smoke-test Maven artifact
+        run: scripts/smoke-maven-local.sh
+
+      - name: Smoke-test npm artifact
+        run: node scripts/smoke-js-package.mjs kmp/build/packages/notifly-kmp-sdk-0.1.0-alpha.1.tgz
+
+      - name: Smoke-test Apple artifact
+        run: |
+          SKIP_BUILD=true scripts/prepare_release.sh 0.1.0-alpha.1
+          swift package dump-package >/dev/null
+          scripts/smoke-apple-artifacts.sh

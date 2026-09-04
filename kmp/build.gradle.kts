@@ -2,11 +2,12 @@ import org.jetbrains.kotlin.gradle.plugin.mpp.apple.XCFramework
 
 plugins {
     kotlin("multiplatform")
+    id("dev.petuska.npm.publish")
     `maven-publish`
 }
 
-group = "tech.notifly"
-version = "0.1.0-alpha.1"
+group = providers.environmentVariable("GROUP").getOrElse("tech.notifly")
+version = providers.environmentVariable("VERSION").getOrElse("0.1.0-alpha.1")
 
 kotlin {
     jvm()
@@ -33,6 +34,36 @@ kotlin {
     sourceSets {
         commonTest.dependencies {
             implementation(kotlin("test"))
+        }
+    }
+}
+
+npmPublish {
+    organization = "notifly"
+
+    registries {
+        npmjs {
+            authToken = System.getenv("NPM_TOKEN")
+        }
+    }
+
+    packages {
+        named("js") {
+            packageName = "kmp-sdk"
+            version = project.version.toString()
+            readme = rootProject.file("README.md")
+            files {
+                from(rootProject.file("LICENSE"))
+            }
+
+            packageJson {
+                license = "MIT"
+                description = "Shared Kotlin Multiplatform implementation used by the Notifly SDKs"
+                repository {
+                    type = "git"
+                    url = "https://github.com/team-michael/notifly-kmp-sdk.git"
+                }
+            }
         }
     }
 }
