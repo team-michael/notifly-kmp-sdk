@@ -41,6 +41,7 @@ jobs:
       - uses: actions/setup-node@v7
         with:
           node-version: "22"
+          package-manager-cache: false
 
       - name: Upgrade npm
         run: npm install -g npm@11.5.1
@@ -70,6 +71,12 @@ jobs:
             echo "github_release_exists=false" >> "$GITHUB_OUTPUT"
           fi
 
+          if npm view "@notifly/kmp-sdk" name >/dev/null 2>&1; then
+            echo "npm_package_exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "npm_package_exists=false" >> "$GITHUB_OUTPUT"
+          fi
+
           if npm view "@notifly/kmp-sdk@$VERSION" version >/dev/null 2>&1; then
             echo "npm_exists=true" >> "$GITHUB_OUTPUT"
           else
@@ -81,6 +88,12 @@ jobs:
           else
             echo "cocoapods_exists=false" >> "$GITHUB_OUTPUT"
           fi
+
+      - name: Verify npm trusted publishing bootstrap
+        if: steps.release-state.outputs.npm_package_exists != 'true'
+        run: |
+          echo "::error::Publish @notifly/kmp-sdk once, then configure this workflow as its npm trusted publisher."
+          exit 1
 
       - name: Test and build
         run: |

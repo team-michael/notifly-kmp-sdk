@@ -26,6 +26,9 @@ jobs:
         with:
           node-version: "22"
 
+      - name: Verify release contracts
+        run: ruby scripts/test-release-contracts.rb
+
       - name: Test common code
         run: |
           ./gradlew \
