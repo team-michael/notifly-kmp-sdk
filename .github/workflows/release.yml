@@ -10,6 +10,7 @@ on:
 
 permissions:
   contents: write
+  id-token: write
 
 concurrency:
   group: notifly-kmp-release
@@ -23,8 +24,6 @@ jobs:
     environment: release
     env:
       VERSION: ${{ inputs.version }}
-      NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-      NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
       COCOAPODS_TRUNK_TOKEN: ${{ secrets.COCOAPODS_TRUNK_TOKEN }}
 
     steps:
@@ -42,7 +41,10 @@ jobs:
       - uses: actions/setup-node@v7
         with:
           node-version: "22"
-          registry-url: https://registry.npmjs.org
+          package-manager-cache: false
+
+      - name: Upgrade npm
+        run: npm install -g npm@11.5.1
 
       - name: Validate version
         run: |
@@ -69,6 +71,12 @@ jobs:
             echo "github_release_exists=false" >> "$GITHUB_OUTPUT"
           fi
 
+          if npm view "@notifly/kmp-sdk" name >/dev/null 2>&1; then
+            echo "npm_package_exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "npm_package_exists=false" >> "$GITHUB_OUTPUT"
+          fi
+
           if npm view "@notifly/kmp-sdk@$VERSION" version >/dev/null 2>&1; then
             echo "npm_exists=true" >> "$GITHUB_OUTPUT"
           else
@@ -80,6 +88,12 @@ jobs:
           else
             echo "cocoapods_exists=false" >> "$GITHUB_OUTPUT"
           fi
+
+      - name: Verify npm trusted publishing bootstrap
+        if: steps.release-state.outputs.npm_package_exists != 'true'
+        run: |
+          echo "::error::Publish @notifly/kmp-sdk once, then configure this workflow as its npm trusted publisher."
+          exit 1
 
       - name: Test and build
         run: |
@@ -97,6 +111,10 @@ jobs:
           scripts/smoke-maven-local.sh
           node scripts/smoke-js-package.mjs "kmp/build/packages/notifly-kmp-sdk-$VERSION.tgz"
           scripts/smoke-apple-artifacts.sh
+
+      - name: Publish npm prerelease
+        if: steps.release-state.outputs.npm_exists != 'true'
+        run: npm publish "kmp/build/packages/notifly-kmp-sdk-$VERSION.tgz" --provenance --access public --tag next
 
       - name: Prepare release archive and manifests
         id: apple
@@ -152,10 +170,6 @@ jobs:
             --prerelease \
             --generate-notes \
             --title "v$VERSION"
-
-      - name: Publish npm prerelease
-        if: steps.release-state.outputs.npm_exists != 'true'
-        run: npm publish "kmp/build/packages/notifly-kmp-sdk-$VERSION.tgz" --access public --tag next
 
       - name: Publish CocoaPods prerelease
         if: steps.release-state.outputs.cocoapods_exists != 'true'
