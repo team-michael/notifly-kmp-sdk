@@ -29,7 +29,7 @@ Host SDKs must depend on an exact tagged version. Moving branches and version ra
 One tag produces three platform-facing artifacts:
 
 - Android/JVM: `com.github.team-michael.notifly-kmp-sdk:kmp:<tag>` through JitPack
-- JavaScript: `@notifly/kmp-sdk` through npm
+- JavaScript: `notifly-kmp-sdk` through npm
 - iOS: `NotiflyKMP` through Swift Package Manager or CocoaPods
 
 The initial prerelease version is `v0.1.0-alpha.1`. These artifacts are internal implementation dependencies of the platform SDKs; application developers should continue to install the platform SDK they already use.

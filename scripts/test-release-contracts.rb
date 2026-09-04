@@ -22,11 +22,13 @@ package = File.read(File.join(root, "Package.swift"))
 podspec = File.read(File.join(root, "NotiflyKMP.podspec"))
 updater = File.read(File.join(root, "scripts/update_release_manifests.rb"))
 gradle_build = File.read(File.join(root, "kmp/build.gradle.kts"))
+js_smoke_test = File.read(File.join(root, "scripts/smoke-js-package.mjs"))
+readme = File.read(File.join(root, "README.md"))
 
 assert_contract(workflow.include?("ref: main"), "release checkout must be pinned to main")
 assert_contract(workflow.include?("id: release-state"), "release workflow must detect existing publication state")
 assert_contract(!workflow.include?('git rev-parse "v$VERSION" >/dev/null 2>&1 && exit 1'), "existing tags must be resumable")
-assert_contract(workflow.include?('npm view "@notifly/kmp-sdk@$VERSION"'), "npm publication must be detected before retry")
+assert_contract(workflow.include?('npm view "notifly-kmp-sdk@$VERSION"'), "npm publication must be detected before retry")
 assert_contract(workflow.include?("pod trunk info NotiflyKMP"), "CocoaPods publication must be detected before retry")
 assert_contract(workflow.include?('gh release view "$tag"'), "GitHub release state must be detected before retry")
 
@@ -54,7 +56,12 @@ assert_contract(
 )
 
 release_state = release_steps.find { |step| step["id"] == "release-state" }
-assert_contract(release_state&.fetch("run", "")&.include?('npm view "@notifly/kmp-sdk" name'), "release state must detect whether npm is bootstrapped")
+assert_contract(release_state&.fetch("run", "")&.include?('npm view "notifly-kmp-sdk" name'), "release state must detect whether npm is bootstrapped")
+
+assert_contract(!gradle_build.include?('organization = "notifly"'), "npm package must not use the unavailable @notifly scope")
+assert_contract(gradle_build.include?('packageName = "notifly-kmp-sdk"'), "Gradle must package the unscoped npm name")
+assert_contract(js_smoke_test.include?('require("notifly-kmp-sdk")'), "npm smoke test must consume the published package name")
+assert_contract(readme.include?("JavaScript: `notifly-kmp-sdk`"), "README must document the published package name")
 
 npm_bootstrap = release_steps.find { |step| step["name"] == "Verify npm trusted publishing bootstrap" }
 assert_contract(npm_bootstrap&.fetch("if", "")&.include?("npm_package_exists != 'true'"), "release must stop when the npm package is not bootstrapped")
