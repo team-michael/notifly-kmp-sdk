@@ -1,6 +1,7 @@
 #!/usr/bin/env ruby
 
 require "open3"
+require "shellwords"
 require "yaml"
 
 root = File.expand_path("..", __dir__)
@@ -44,13 +45,40 @@ npm_upgrade = release_steps.find { |step| step["name"] == "Upgrade npm" }
 assert_contract(npm_upgrade&.fetch("run", nil) == "npm install -g npm@11.5.1", "release workflow must pin an OIDC-capable npm version")
 
 npm_publish = release_steps.find { |step| step["name"] == "Publish npm prerelease" }
-assert_contract(npm_publish&.fetch("run", "")&.include?("--provenance"), "npm publication must emit provenance")
+npm_publish_command = Shellwords.split(npm_publish&.fetch("run", ""))
+assert_contract(
+  npm_publish_command.take(2) == ["npm", "publish"] &&
+    npm_publish_command.include?("--provenance") &&
+    npm_publish_command.none? { |argument| argument.start_with?("--provenance=") },
+  "npm publication must emit provenance"
+)
 
 release_state = release_steps.find { |step| step["id"] == "release-state" }
 assert_contract(release_state&.fetch("run", "")&.include?('npm view "@notifly/kmp-sdk" name'), "release state must detect whether npm is bootstrapped")
 
 npm_bootstrap = release_steps.find { |step| step["name"] == "Verify npm trusted publishing bootstrap" }
 assert_contract(npm_bootstrap&.fetch("if", "")&.include?("npm_package_exists != 'true'"), "release must stop when the npm package is not bootstrapped")
+
+release_step_names = release_steps.map { |step| step["name"] }.compact
+bootstrap_index = release_step_names.index("Verify npm trusted publishing bootstrap")
+[
+  "Test and build",
+  "Commit versioned manifests",
+  "Create GitHub release",
+  "Publish npm prerelease",
+].each do |step_name|
+  step_index = release_step_names.index(step_name)
+  assert_contract(bootstrap_index && step_index && bootstrap_index < step_index, "npm bootstrap verification must precede #{step_name}")
+end
+
+npm_publish_index = release_step_names.index("Publish npm prerelease")
+[
+  "Commit versioned manifests",
+  "Create GitHub release",
+].each do |step_name|
+  step_index = release_step_names.index(step_name)
+  assert_contract(npm_publish_index && step_index && npm_publish_index < step_index, "npm OIDC publication must precede #{step_name}")
+end
 
 ci_release_contract = ci_steps.find { |step| step["name"] == "Verify release contracts" }
 assert_contract(ci_release_contract&.fetch("run", nil) == "ruby scripts/test-release-contracts.rb", "CI must enforce release contracts")

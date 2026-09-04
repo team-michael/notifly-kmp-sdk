@@ -112,6 +112,10 @@ jobs:
           node scripts/smoke-js-package.mjs "kmp/build/packages/notifly-kmp-sdk-$VERSION.tgz"
           scripts/smoke-apple-artifacts.sh
 
+      - name: Publish npm prerelease
+        if: steps.release-state.outputs.npm_exists != 'true'
+        run: npm publish "kmp/build/packages/notifly-kmp-sdk-$VERSION.tgz" --provenance --access public --tag next
+
       - name: Prepare release archive and manifests
         id: apple
         env:
@@ -166,10 +170,6 @@ jobs:
             --prerelease \
             --generate-notes \
             --title "v$VERSION"
-
-      - name: Publish npm prerelease
-        if: steps.release-state.outputs.npm_exists != 'true'
-        run: npm publish "kmp/build/packages/notifly-kmp-sdk-$VERSION.tgz" --provenance --access public --tag next
 
       - name: Publish CocoaPods prerelease
         if: steps.release-state.outputs.cocoapods_exists != 'true'
