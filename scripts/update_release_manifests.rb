@@ -21,4 +21,5 @@ File.write(package_path, package)
 
 podspec = File.read(podspec_path)
 podspec.sub!(/spec\.version = "[^"]+"/, "spec.version = \"#{version}\"")
+podspec.sub!(/:sha256 => "[0-9a-f]{64}"/, ":sha256 => \"#{checksum}\"")
 File.write(podspec_path, podspec)

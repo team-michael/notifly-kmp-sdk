@@ -6,7 +6,8 @@ Pod::Spec.new do |spec|
   spec.license = { :type => "MIT" }
   spec.author = { "Notifly" => "engineering@notifly.tech" }
   spec.source = {
-    :http => "https://github.com/team-michael/notifly-kmp-sdk/releases/download/v#{spec.version}/NotiflyKMP.xcframework.zip"
+    :http => "https://github.com/team-michael/notifly-kmp-sdk/releases/download/v#{spec.version}/NotiflyKMP.xcframework.zip",
+    :sha256 => "206c42420b25d912efee225ad120f747999336845ff05793da583c27e0b6a003"
   }
   spec.ios.deployment_target = "15.0"
   spec.vendored_frameworks = "NotiflyKMP.xcframework"

@@ -17,7 +17,7 @@ let package = Package(
         .binaryTarget(
             name: "NotiflyKMP",
             url: "https://github.com/team-michael/notifly-kmp-sdk/releases/download/v0.1.0-alpha.1/NotiflyKMP.xcframework.zip",
-            checksum: "1f9329189ddf30cf242cead67996d8db4d360ce9b3801c279e2892b3c66cce60"
+            checksum: "206c42420b25d912efee225ad120f747999336845ff05793da583c27e0b6a003"
         ),
     ]
 )
