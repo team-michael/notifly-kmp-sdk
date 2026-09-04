@@ -17,14 +17,14 @@ try {
     stdio: "inherit",
   });
 
-  const packageRoot = join(consumer, "node_modules", "@notifly", "kmp-sdk");
+  const packageRoot = join(consumer, "node_modules", "notifly-kmp-sdk");
   const files = readdirSync(packageRoot);
   assert.ok(files.includes("LICENSE"), "npm package must contain LICENSE");
   assert.ok(files.some((file) => file.endsWith(".d.ts")), "npm package must contain TypeScript declarations");
   assert.ok(files.some((file) => file.endsWith(".js.map")), "npm package must contain source maps");
 
   const require = createRequire(join(consumer, "consumer.cjs"));
-  const sdk = require("@notifly/kmp-sdk");
+  const sdk = require("notifly-kmp-sdk");
   const decision = sdk.tech.notifly.kmp.identity.UserIdTransitionPolicy.evaluate(null, "A");
   assert.equal(decision.changed, true);
   assert.equal(decision.shouldSync, true);

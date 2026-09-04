@@ -39,11 +39,9 @@ kotlin {
 }
 
 npmPublish {
-    organization = "notifly"
-
     packages {
         named("js") {
-            packageName = "kmp-sdk"
+            packageName = "notifly-kmp-sdk"
             version = project.version.toString()
             readme = rootProject.file("README.md")
             files {
