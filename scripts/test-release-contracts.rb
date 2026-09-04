@@ -1,5 +1,7 @@
 #!/usr/bin/env ruby
 
+require "open3"
+
 root = File.expand_path("..", __dir__)
 
 def assert_contract(condition, message)
@@ -29,5 +31,15 @@ swift_checksum = package[/checksum: "([0-9a-f]{64})"/, 1]
 pod_checksum = podspec[/:sha256 => "([0-9a-f]{64})"/, 1]
 assert_contract(swift_checksum == pod_checksum, "SwiftPM and CocoaPods checksums must match")
 assert_contract(updater.include?("podspec.sub!(/:sha256"), "manifest updater must update the CocoaPods checksum")
+
+version_checker = File.join(root, "scripts/cocoapods-version-exists.rb")
+assert_contract(File.executable?(version_checker), "CocoaPods exact-version checker must exist")
+partial_match_output = "NotiflyKMP\n- Versions:\n  - 0.1.0-alpha.10 (2026-09-04 00:00:00 UTC)\n"
+_, _, partial_status = Open3.capture3(version_checker, "0.1.0-alpha.1", stdin_data: partial_match_output)
+assert_contract(!partial_status.success?, "CocoaPods alpha.1 must not match alpha.10")
+
+exact_match_output = partial_match_output + "  - 0.1.0-alpha.1 (2026-09-03 00:00:00 UTC)\n"
+_, _, exact_status = Open3.capture3(version_checker, "0.1.0-alpha.1", stdin_data: exact_match_output)
+assert_contract(exact_status.success?, "CocoaPods alpha.1 must match the complete alpha.1 version field")
 
 puts "release contracts verified"

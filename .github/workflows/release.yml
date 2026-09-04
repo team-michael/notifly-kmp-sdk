@@ -75,7 +75,7 @@ jobs:
             echo "npm_exists=false" >> "$GITHUB_OUTPUT"
           fi
 
-          if pod trunk info NotiflyKMP 2>/dev/null | grep -F "$VERSION" >/dev/null; then
+          if pod trunk info NotiflyKMP 2>/dev/null | scripts/cocoapods-version-exists.rb "$VERSION"; then
             echo "cocoapods_exists=true" >> "$GITHUB_OUTPUT"
           else
             echo "cocoapods_exists=false" >> "$GITHUB_OUTPUT"
