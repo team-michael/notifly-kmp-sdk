@@ -1,0 +1,9 @@
+.worktrees/
+.gradle/
+build/
+**/build/
+.idea/
+local.properties
+*.xcframework
+*.zip
+
