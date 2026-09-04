@@ -1,6 +1,7 @@
 #!/usr/bin/env ruby
 
 require "open3"
+require "yaml"
 
 root = File.expand_path("..", __dir__)
 
@@ -9,10 +10,14 @@ def assert_contract(condition, message)
 end
 
 workflow = File.read(File.join(root, ".github/workflows/release.yml"))
+workflow_config = YAML.safe_load(workflow, aliases: true)
+release_job = workflow_config.fetch("jobs").fetch("release")
+release_steps = release_job.fetch("steps")
 wrapper = File.read(File.join(root, "gradle/wrapper/gradle-wrapper.properties"))
 package = File.read(File.join(root, "Package.swift"))
 podspec = File.read(File.join(root, "NotiflyKMP.podspec"))
 updater = File.read(File.join(root, "scripts/update_release_manifests.rb"))
+gradle_build = File.read(File.join(root, "kmp/build.gradle.kts"))
 
 assert_contract(workflow.include?("ref: main"), "release checkout must be pinned to main")
 assert_contract(workflow.include?("id: release-state"), "release workflow must detect existing publication state")
@@ -20,6 +25,24 @@ assert_contract(!workflow.include?('git rev-parse "v$VERSION" >/dev/null 2>&1 &&
 assert_contract(workflow.include?('npm view "@notifly/kmp-sdk@$VERSION"'), "npm publication must be detected before retry")
 assert_contract(workflow.include?("pod trunk info NotiflyKMP"), "CocoaPods publication must be detected before retry")
 assert_contract(workflow.include?('gh release view "$tag"'), "GitHub release state must be detected before retry")
+
+permissions = workflow_config.fetch("permissions")
+assert_contract(permissions["id-token"] == "write", "release workflow must grant OIDC id-token write permission")
+assert_contract(release_job["environment"] == "release", "npm trusted publishing must be bound to the release environment")
+
+release_environment = release_job.fetch("env")
+assert_contract(!release_environment.key?("NPM_TOKEN"), "release workflow must not require NPM_TOKEN")
+assert_contract(!release_environment.key?("NODE_AUTH_TOKEN"), "release workflow must not require NODE_AUTH_TOKEN")
+assert_contract(!gradle_build.include?("NPM_TOKEN"), "Gradle npm packaging must not require NPM_TOKEN")
+
+node_setup = release_steps.find { |step| step["uses"]&.start_with?("actions/setup-node@") }
+assert_contract(!node_setup&.fetch("with", {})&.key?("registry-url"), "OIDC setup must not generate a token-based npmrc")
+
+npm_upgrade = release_steps.find { |step| step["name"] == "Upgrade npm" }
+assert_contract(npm_upgrade&.fetch("run", nil) == "npm install -g npm@11.5.1", "release workflow must pin an OIDC-capable npm version")
+
+npm_publish = release_steps.find { |step| step["name"] == "Publish npm prerelease" }
+assert_contract(npm_publish&.fetch("run", "")&.include?("--provenance"), "npm publication must emit provenance")
 
 expected_wrapper_checksum = "d725d707bfabd4dfdc958c624003b3c80accc03f7037b5122c4b1d0ef15cecab"
 assert_contract(

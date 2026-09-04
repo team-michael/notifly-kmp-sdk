@@ -41,12 +41,6 @@ kotlin {
 npmPublish {
     organization = "notifly"
 
-    registries {
-        npmjs {
-            authToken = System.getenv("NPM_TOKEN")
-        }
-    }
-
     packages {
         named("js") {
             packageName = "kmp-sdk"

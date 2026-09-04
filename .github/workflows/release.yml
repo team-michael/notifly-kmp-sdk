@@ -10,6 +10,7 @@ on:
 
 permissions:
   contents: write
+  id-token: write
 
 concurrency:
   group: notifly-kmp-release
@@ -23,8 +24,6 @@ jobs:
     environment: release
     env:
       VERSION: ${{ inputs.version }}
-      NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-      NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
       COCOAPODS_TRUNK_TOKEN: ${{ secrets.COCOAPODS_TRUNK_TOKEN }}
 
     steps:
@@ -42,7 +41,9 @@ jobs:
       - uses: actions/setup-node@v7
         with:
           node-version: "22"
-          registry-url: https://registry.npmjs.org
+
+      - name: Upgrade npm
+        run: npm install -g npm@11.5.1
 
       - name: Validate version
         run: |
@@ -155,7 +156,7 @@ jobs:
 
       - name: Publish npm prerelease
         if: steps.release-state.outputs.npm_exists != 'true'
-        run: npm publish "kmp/build/packages/notifly-kmp-sdk-$VERSION.tgz" --access public --tag next
+        run: npm publish "kmp/build/packages/notifly-kmp-sdk-$VERSION.tgz" --provenance --access public --tag next
 
       - name: Publish CocoaPods prerelease
         if: steps.release-state.outputs.cocoapods_exists != 'true'
