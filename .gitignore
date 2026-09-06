@@ -1,9 +1,9 @@
 .worktrees/
 .gradle/
+.kotlin/
 build/
 **/build/
 .idea/
 local.properties
 *.xcframework
 *.zip
-
